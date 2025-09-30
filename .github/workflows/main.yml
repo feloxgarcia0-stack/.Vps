@@ -1,0 +1,63 @@
+name: VPS con Guardado y Apagado Seguro
+
+on:
+  workflow_dispatch:
+
+# Permisos para que el workflow pueda escribir en tu repositorio
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # TEMPORIZADOR MAESTRO: El trabajo completo se cancelará después de 330 minutos (5.5 horas).
+    # Esto es lo que iniciará el proceso de guardado.
+    timeout-minutes: 330
+    steps:
+      - name: 1. Descargar el contenido del repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Instalar Tailscale y mostrar datos de conexión
+        run: |
+          # Instalar Tailscale
+          curl -fsSL https://tailscale.com/install.sh | sh
+          
+          # Conectar a tu red de Tailscale
+          sudo tailscale up --authkey=tskey-auth-kFSozaELnc11CNTRL-AYAfNFLubL893hLZMQsZL81HVDEZuCAx --hostname=github-vps
+          
+          echo "--------------------------------------------------------------------"
+          echo "USUARIO: runner"
+          echo "CONÉCTATE A ESTA IP POR SSH: $(tailscale ip -4)"
+          echo "(El usuario 'runner' no tiene contraseña por defecto, puedes usar sudo sin problema)"
+          echo "--------------------------------------------------------------------"
+
+      - name: 3. Iniciar Tmate para mantener la VPS viva
+        # Esta acción mantendrá todo funcionando.
+        # Cuando el temporizador de 5.5 horas del trabajo se agote, GitHub cancelará este paso...
+        uses: mxschmitt/action-tmate@v3
+
+      - name: 4. PASO FINAL: Guardar todo antes de apagar
+        # if: always() -> ESTA ES LA CLAVE.
+        # Este paso se ejecuta SIEMPRE al final, especialmente si el paso anterior (Tmate) fue cancelado por el tiempo límite.
+        if: always()
+        run: |
+          echo "Límite de tiempo alcanzado o sesión desconectada. Iniciando guardado..."
+          
+          # Configurar git con un usuario genérico
+          git config --global user.name 'GitHub Actions VPS'
+          git config --global user.email 'actions@github.com'
+          
+          # Añadir todos los archivos nuevos o modificados
+          git add .
+          
+          # Comprobar si hay algo que guardar
+          if git diff --staged --quiet; then
+            echo "No se encontraron cambios para guardar."
+          else
+            # Crear un commit y empujarlo al repositorio.
+            # El workflow esperará aquí hasta que este comando termine, sin importar cuánto tarde.
+            echo "Cambios detectados. Guardando en el repositorio..."
+            git commit -m "Guardado automático de la sesión de la VPS"
+            git push
+            echo "¡Trabajo guardado con éxito! La VPS se apagará ahora."
+          fi
