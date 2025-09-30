@@ -10,14 +10,14 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # TEMPORIZADOR MAESTRO: El trabajo completo se cancelará después de 330 minutos (5.5 horas).
-    # Esto es lo que iniciará el proceso de guardado.
+    # Temporizador maestro: El trabajo completo se cancelará después de 330 minutos (5.5 horas).
     timeout-minutes: 330
     steps:
-      - name: 1. Descargar el contenido del repositorio
+      # He puesto el nombre de cada paso entre comillas para evitar errores de sintaxis.
+      - name: "1. Descargar el contenido del repositorio"
         uses: actions/checkout@v4
 
-      - name: 2. Instalar Tailscale y mostrar datos de conexión
+      - name: "2. Instalar Tailscale y mostrar datos de conexión"
         run: |
           # Instalar Tailscale
           curl -fsSL https://tailscale.com/install.sh | sh
@@ -31,14 +31,13 @@ jobs:
           echo "(El usuario 'runner' no tiene contraseña por defecto, puedes usar sudo sin problema)"
           echo "--------------------------------------------------------------------"
 
-      - name: 3. Iniciar Tmate para mantener la VPS viva
-        # Esta acción mantendrá todo funcionando.
-        # Cuando el temporizador de 5.5 horas del trabajo se agote, GitHub cancelará este paso...
+      - name: "3. Iniciar Tmate para mantener la VPS viva"
+        # Esta acción mantendrá todo funcionando. Cuando el tiempo se agote, se cancelará y pasará al siguiente paso.
         uses: mxschmitt/action-tmate@v3
 
-      - name: 4. PASO FINAL: Guardar todo antes de apagar
-        # if: always() -> ESTA ES LA CLAVE.
-        # Este paso se ejecuta SIEMPRE al final, especialmente si el paso anterior (Tmate) fue cancelado por el tiempo límite.
+      - name: "4. PASO FINAL: Guardar todo antes de apagar"
+        # Esta es la corrección principal: el nombre del paso ahora está entre comillas.
+        # if: always() se asegura de que este paso se ejecute SIEMPRE, incluso si el anterior fue cancelado.
         if: always()
         run: |
           echo "Límite de tiempo alcanzado o sesión desconectada. Iniciando guardado..."
@@ -55,7 +54,7 @@ jobs:
             echo "No se encontraron cambios para guardar."
           else
             # Crear un commit y empujarlo al repositorio.
-            # El workflow esperará aquí hasta que este comando termine, sin importar cuánto tarde.
+            # El workflow esperará aquí hasta que este comando termine.
             echo "Cambios detectados. Guardando en el repositorio..."
             git commit -m "Guardado automático de la sesión de la VPS"
             git push
