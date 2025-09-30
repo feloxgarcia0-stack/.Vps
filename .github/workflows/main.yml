@@ -29,7 +29,7 @@ jobs:
       - name: "3. Conectar a Tailscale y mostrar datos"
         run: |
           # Conectar a tu red de Tailscale
-          sudo tailscale up --authkey=tskey-auth-kFSozaELnc11CNTRL-AYAfNFLubL893hLZMQsZL81HVDEZuCAx --hostname=github-vps
+          sudo tailscale up --authkey=tskey-auth-kBU3f1HEM721CNTRL-ZwRrWsEkEhLYV6GgDopDhL6hKCgVjrDs --hostname=github-vps
           
           echo "--------------------------------------------------------------------"
           echo "CONEXIÓN POR TAILSCALE (SSH):"
